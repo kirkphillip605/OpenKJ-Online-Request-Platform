@@ -1,0 +1,54 @@
+{
+  "name": "openkj-request-server-api",
+  "version": "0.1.0",
+  "description": "API for Karaoke Request App with OpenKJ integration",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "start:prod": "cross-env NODE_ENV=production node server.js",
+    "test": "cross-env NODE_ENV=test echo \"Error: no test specified yet\" && exit 1",
+    "migrate": "npx sequelize-cli db:migrate",
+    "migrate:dev": "cross-env NODE_ENV=development npx sequelize-cli db:migrate",
+    "migrate:test": "cross-env NODE_ENV=test npx sequelize-cli db:migrate",
+    "migrate:prod": "cross-env NODE_ENV=production npx sequelize-cli db:migrate",
+    "migrate:undo": "npx sequelize-cli db:migrate:undo",
+    "migrate:undo:dev": "cross-env NODE_ENV=development npx sequelize-cli db:migrate:undo",
+    "migrate:undo:test": "cross-env NODE_ENV=test npx sequelize-cli db:migrate:undo",
+    "migrate:undo:prod": "cross-env NODE_ENV=production npx sequelize-cli db:migrate:undo",
+    "migrate:undo:all": "npx sequelize-cli db:migrate:undo:all",
+    "migrate:undo:all:dev": "cross-env NODE_ENV=development npx sequelize-cli db:migrate:undo:all",
+    "migrate:undo:all:test": "cross-env NODE_ENV=test npx sequelize-cli db:migrate:undo:all",
+    "migrate:undo:all:prod": "cross-env NODE_ENV=production npx sequelize-cli db:migrate:undo:all",
+    "seed:all": "npx sequelize-cli db:seed:all",
+    "seed:all:dev": "cross-env NODE_ENV=development npx sequelize-cli db:seed:all",
+    "seed:all:test": "cross-env NODE_ENV=test npx sequelize-cli db:seed:all",
+    "seed:undo:all": "npx sequelize-cli db:seed:undo:all",
+    "seed:undo:all:dev": "cross-env NODE_ENV=development npx sequelize-cli db:seed:undo:all",
+    "seed:undo:all:test": "cross-env NODE_ENV=test npx sequelize-cli db:seed:undo:all"
+  },
+  "keywords": [
+    "karaoke",
+    "openkj",
+    "api",
+    "express",
+    "sequelize"
+  ],
+  "author": "Your Name or Company",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cjs": "^0.0.11",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mysql2": "^3.9.7",
+    "sequelize": "^6.37.3",
+    "winston": "^3.13.0"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "nodemon": "^3.1.0",
+    "sequelize-cli": "^6.6.2"
+  }
+}
