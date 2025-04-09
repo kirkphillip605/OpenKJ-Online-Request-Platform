@@ -7,7 +7,7 @@ module.exports = {
 
     await queryInterface.bulkInsert('state', [{ // Table name: 'state'
         accepting: false, // Initial global accepting state
-        serial: 0        // Initial serial value
+        serial: 1        // Initial serial value
         // No timestamps needed
     }], {});
   },

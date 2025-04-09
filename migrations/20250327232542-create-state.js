@@ -2,6 +2,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    await queryInterface.sequelize.query('SET SESSION sql_require_primary_key = OFF;');
     await queryInterface.createTable('state', {
       accepting: {
         type: Sequelize.BOOLEAN,

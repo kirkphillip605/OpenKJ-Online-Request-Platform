@@ -1,80 +1,100 @@
-// middleware/auth.middleware.js
 // Filepath: middleware/auth.middleware.js
 const db = require('../models');
 const logger = require('../utils/logger');
+const jwt = require('jsonwebtoken'); // Import jwt
 const ApiKey = db.ApiKey;
 const User = db.User;
-const Venue = db.Venue; // Still needed to check if venue_id exists
-const State = db.State; // Still needed to check if venue_id exists
+const Venue = db.Venue;
 
+// --- Existing verifyOpenKJApiKey function ---
 const verifyOpenKJApiKey = async (req, res, next) => {
+    // ... (keep existing implementation) ...
     const apiKey = req.body.api_key;
     const command = req.body.command;
     const venueId = req.body.venue_id;
-    // system_id from addSongs treated as venue_id for validation
-    const systemIdAsVenueId = (command === 'addSongs') ? req.body.system_id : null;
 
     if (!apiKey) {
         logger.warn(`[Auth] API key missing for command: ${command}`);
         return res.status(200).json({ command: command, error: true, errorString: 'Authentication failed: API key is required.' });
     }
-
     try {
-        const keyInstance = await ApiKey.findOne({
-            where: { key: apiKey },
-            include: [{ model: User, as: 'user' }] // Include admin user who generated key (for logging)
-        });
-
+        const keyInstance = await ApiKey.findOne({ where: { key: apiKey } });
         if (!keyInstance) {
             logger.warn(`[Auth] Invalid API key used: ${apiKey.substring(0, 5)}... for command: ${command}`);
             return res.status(200).json({ command: command, error: true, errorString: 'Authentication failed: Invalid API key.' });
         }
+        req.apiKeyId = keyInstance.api_key_id;
+        // Get user associated with the key for logging in controller
+        const userGeneratingKey = await User.findByPk(keyInstance.user_id);
+        req.user = userGeneratingKey || { user_id: 'N/A (User Deleted?)' }; // Attach user info to req
 
-        // Attach associated admin user (if exists) to request for logging/auditing
-        // It's possible a key exists but the user was deleted, handle this gracefully.
-        req.user = keyInstance.user || { user_id: 'N/A (User Deleted?)' };
-        const adminUserId = req.user.user_id;
-
-        logger.info(`[Auth] API key validated. Key ID: ${keyInstance.api_key_id}, Associated Admin User ID: ${adminUserId}, Command: ${command}`);
-
-        // --- Venue Existence Check (Crucial) ---
-        // Ensure the venue_id specified in the request actually exists in the database.
-        // The API key grants access *if* the venue is valid.
-
-        const venueIdToCheck = venueId || systemIdAsVenueId; // Use venue_id or system_id depending on command
-
-        // List of commands that require a valid venue_id or system_id
-        const commandsRequiringVenue = ['getRequests', 'deleteRequest', 'setAccepting', 'clearRequests', 'addSongs'];
-
+        logger.info(`[Auth] API key validated. Key ID: ${req.apiKeyId}, Associated Admin User ID: ${req.user.user_id}, Command: ${command}`);
+        const venueIdToCheck = venueId;
+        const commandsRequiringVenue = ['getRequests', 'deleteRequest', 'setAccepting', 'clearRequests'];
         if (venueIdToCheck && commandsRequiringVenue.includes(command)) {
-            const venueExists = await Venue.findByPk(venueIdToCheck, { attributes: ['venue_id'] }); // Efficiently check existence
-
+            const venueExists = await Venue.findByPk(venueIdToCheck, { attributes: ['venue_id'] });
             if (!venueExists) {
-                logger.warn(`[Auth] Admin User ${adminUserId} / API Key ${keyInstance.api_key_id}: Attempted action on non-existent venue ID ${venueIdToCheck}. Command: ${command}`);
+                logger.warn(`[Auth] API Key ${req.apiKeyId}: Attempted action on non-existent venue ID ${venueIdToCheck}. Command: ${command}`);
                 return res.status(200).json({
                     command: command,
                     error: true,
                     errorString: `Operation failed: Venue ID ${venueIdToCheck} not found.`
                 });
             }
-            logger.debug(`[Auth] Venue existence confirmed for venue_id: ${venueIdToCheck}. Proceeding with command ${command}.`);
-
-             // If command is addSongs, attach the validated venue_id to req for the controller
-             if (command === 'addSongs') {
-                 req.venue_id = venueIdToCheck;
-             }
+            logger.debug(`[Auth] API Key ${req.apiKeyId}: Venue existence confirmed for venue_id: ${venueIdToCheck}. Proceeding with command ${command}.`);
         }
-
-        // Optionally update last_used_at (consider performance)
-        // keyInstance.last_used_at = new Date();
-        // await keyInstance.save();
-
-        next(); // Proceed to the controller
-
+        next();
     } catch (error) {
         logger.error('[Auth] Error during API key verification:', error);
         return res.status(500).json({ command: command, error: true, errorString: 'Server error during authentication.' });
     }
 };
 
-module.exports = { verifyOpenKJApiKey };
+// --- NEW function to verify Admin JWT ---
+const verifyAdminToken = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+
+    if (!token) {
+        return res.status(401).json({ error: true, errorString: 'Authentication required: No token provided.' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Attach decoded payload (contains userId, username, isAdmin) to request
+        req.auth = decoded; // Use req.auth to avoid conflict with req.user in OpenKJ route
+
+        // Explicitly check if the user associated with the token is still valid and is an admin
+        const user = await User.findByPk(decoded.userId);
+        if (!user) {
+            logger.warn(`[Admin Auth] User ID ${decoded.userId} from valid token not found in DB.`);
+            return res.status(401).json({ error: true, errorString: 'Invalid token: User not found.' });
+        }
+        if (!user.is_admin) {
+             logger.warn(`[Admin Auth] User ${user.username} (ID: ${user.user_id}) attempted admin action but is not admin.`);
+            return res.status(403).json({ error: true, errorString: 'Forbidden: Admin privileges required.' });
+        }
+
+         // Add user object to req.auth for convenience in controllers
+         req.auth.user = user;
+
+        logger.debug(`[Admin Auth] Token validated for admin user: ${req.auth.username} (ID: ${req.auth.userId})`);
+        next(); // Proceed if token is valid and user is admin
+
+    } catch (error) {
+        if (error instanceof jwt.TokenExpiredError) {
+            logger.warn('[Admin Auth] Token expired.');
+            return res.status(401).json({ error: true, errorString: 'Authentication failed: Token expired.' });
+        }
+        if (error instanceof jwt.JsonWebTokenError) {
+            logger.warn('[Admin Auth] Invalid token:', error.message);
+            return res.status(401).json({ error: true, errorString: `Authentication failed: ${error.message}` });
+        }
+        logger.error('[Admin Auth] Error during token verification:', error);
+        return res.status(500).json({ error: true, errorString: 'Server error during authentication.' });
+    }
+};
+
+
+module.exports = { verifyOpenKJApiKey, verifyAdminToken }; // Export both
