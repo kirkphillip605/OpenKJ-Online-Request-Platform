@@ -1,0 +1,466 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum PricingType {
+  one_time
+  recurring
+
+  @@map("pricingtype")
+}
+
+enum PricingInterval {
+  day
+  week
+  month
+  year
+
+  @@map("pricinginterval")
+}
+
+enum SubscriptionStatus {
+  trialing
+  active
+  canceled
+  incomplete
+  incomplete_expired
+  past_due
+  unpaid
+  paused
+
+  @@map("subscriptionstatus")
+}
+
+enum ApiKeyStatus {
+  active
+  revoked
+  expired
+
+  @@map("apikeystatus")
+}
+
+// NextAuth.js tables
+model Account {
+  id                String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String  @map("userid") @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String  @map("provideraccountid")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  oauth_token_secret String?
+  oauth_token       String?
+  createdAt         DateTime @default(now()) @map("createdat")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updatedat")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionToken String   @unique @map("sessiontoken")
+  userId       String   @map("userid") @db.Uuid
+  expires      DateTime
+  createdAt    DateTime @default(now()) @map("createdat")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updatedat")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  createdAt  DateTime @default(now()) @map("createdat")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updatedat")
+
+  @@id([identifier, token])
+  @@index([expires])
+  @@map("verification_tokens")
+}
+
+// User and Business Logic
+model User {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String?
+  email         String    @unique
+  emailVerified DateTime? @map("emailverified")
+  image         String?
+  businessName  String?   @map("businessname")
+  phoneNumber   String?   @map("phonenumber")
+  passwordHash  String?   @map("passwordhash")
+  createdAt     DateTime  @default(now()) @map("createdat")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updatedat")
+
+  // Relations
+  accounts           Account[]
+  sessions           Session[]
+  customer           Customer?
+  venueRelationships VenueRelationship[]
+  songDb             SongDb[]
+
+  @@index([email])
+  @@map("users")
+}
+
+// Stripe Integration
+model Customer {
+  id               String @id @db.Uuid
+  stripeCustomerId String @unique @map("stripecustomerid")
+  createdAt        DateTime @default(now()) @map("createdat")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updatedat")
+
+  // Relations
+  user                     User                       @relation(fields: [id], references: [id], onDelete: Cascade)
+  subscriptions            Subscription[]
+  invoices                 Invoice[]
+  apiKeys                  ApiKey[]
+  paymentMethods           PaymentMethod[]
+  stripeCheckoutSessions   StripeCheckoutSession[]
+  stripePaymentIntents     StripePaymentIntent[]
+
+  @@index([stripeCustomerId])
+  @@map("customers")
+}
+
+model Product {
+  id          String    @id
+  active      Boolean?
+  name        String?
+  description String?
+  image       String?
+  metadata    Json?
+  createdAt   DateTime  @default(now()) @map("createdat")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updatedat")
+
+  // Relations
+  prices Price[]
+
+  @@map("products")
+}
+
+model Price {
+  id              String           @id
+  productId       String           @map("productid")
+  active          Boolean?
+  description     String?
+  unitAmount      BigInt?          @map("unitamount")
+  currency        String           @db.Char(3)
+  type            PricingType
+  interval        PricingInterval?
+  intervalCount   Int?             @map("intervalcount")
+  trialPeriodDays Int?             @map("trialperioddays")
+  metadata        Json?
+  createdAt       DateTime         @default(now()) @map("createdat")
+  updatedAt       DateTime         @default(now()) @updatedAt @map("updatedat")
+
+  // Relations
+  product       Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
+  invoiceItems  InvoiceItem[]
+
+  @@index([productId])
+  @@map("prices")
+}
+
+model Subscription {
+  id                 String             @id
+  userId             String             @map("userid") @db.Uuid
+  status             SubscriptionStatus?
+  metadata           Json?
+  priceId            String             @map("priceid")
+  quantity           Int                @default(1)
+  cancelAtPeriodEnd  Boolean?           @map("cancelatperiodend")
+  createdAt          DateTime           @map("createdat")
+  currentPeriodStart DateTime           @map("currentperiodstart")
+  currentPeriodEnd   DateTime           @map("currentperiodend")
+  endedAt            DateTime?          @map("endedat")
+  cancelAt           DateTime?          @map("cancelat")
+  canceledAt         DateTime?          @map("canceledat")
+  trialStart         DateTime?          @map("trialstart")
+  trialEnd           DateTime?          @map("trialend")
+  updatedAt          DateTime           @default(now()) @updatedAt @map("updatedat")
+
+  // Relations
+  customer     Customer      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  price        Price         @relation(fields: [priceId], references: [id])
+  invoices     Invoice[]
+  invoiceItems InvoiceItem[]
+
+  @@index([userId])
+  @@index([priceId])
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id                String   @id
+  customerId        String   @map("customerid") @db.Uuid
+  stripeCustomerId  String   @map("stripecustomerid")
+  subscriptionId    String?  @map("subscriptionid")
+  status            String
+  amountDue         BigInt?  @map("amountdue")
+  amountPaid        BigInt?  @map("amountpaid")
+  amountRemaining   BigInt?  @map("amountremaining")
+  currency          String   @db.Char(3)
+  invoicePdf        String?  @map("invoicepdf")
+  hostedInvoiceUrl  String?  @map("hostedinvoiceurl")
+  periodStart       DateTime @map("periodstart")
+  periodEnd         DateTime @map("periodend")
+  dueDate           DateTime? @map("duedate")
+  metadata          Json?
+  createdAt         DateTime @default(now()) @map("createdat")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updatedat")
+
+  // Relations
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+  invoiceItems InvoiceItem[]
+
+  @@index([customerId])
+  @@index([stripeCustomerId])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id             String  @id
+  invoiceId      String  @map("invoiceid")
+  priceId        String? @map("priceid")
+  subscriptionId String? @map("subscriptionid")
+  quantity       Int?
+  description    String?
+  amount         BigInt?
+  currency       String  @db.Char(3)
+  metadata       Json?
+  createdAt      DateTime @default(now()) @map("createdat")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updatedat")
+
+  // Relations
+  invoice      Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  price        Price?        @relation(fields: [priceId], references: [id])
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([invoiceId])
+  @@index([priceId])
+  @@index([subscriptionId])
+  @@map("invoice_items")
+}
+
+model PaymentMethod {
+  id               String   @id
+  stripeCustomerId String   @map("stripecustomerid")
+  type             String
+  cardBrand        String?  @map("cardbrand")
+  cardLast4        String?  @map("cardlast4")
+  cardExpMonth     Int?     @map("cardexpmonth")
+  cardExpYear      Int?     @map("cardexpyear")
+  billingDetails   Json?    @map("billingdetails")
+  metadata         Json?
+  createdAt        DateTime @default(now()) @map("createdat")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updatedat")
+
+  // Relations
+  customer Customer @relation(fields: [stripeCustomerId], references: [stripeCustomerId], onDelete: Cascade)
+
+  @@index([stripeCustomerId])
+  @@map("payment_methods")
+}
+
+// API Keys for OpenKJ Integration
+model ApiKey {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerId  String       @map("customerid") @db.Uuid
+  description String?
+  apiKeyHash  String       @map("apikeyhash")
+  createdAt   DateTime     @default(now()) @map("createdat")
+  lastUsedAt  DateTime?    @map("lastusedat")
+  status      ApiKeyStatus @default(active)
+  revokedAt   DateTime?    @map("revokedat")
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updatedat")
+
+  // Relations
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("api_keys")
+}
+
+// Venue Management
+model Venue {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String
+  address    String?
+  city       String?
+  state      String?
+  postalCode String? @map("postalcode")
+  country    String?
+  latitude   Float?
+  longitude  Float?
+  createdAt  DateTime @default(now()) @map("createdat")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updatedat")
+
+  // Relations
+  venueRelationships VenueRelationship[]
+
+  @@index([address])
+  @@index([name])
+  @@map("venues")
+}
+
+model VenueRelationship {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String   @map("userid") @db.Uuid
+  venueId           String   @map("venueid") @db.Uuid
+  displayName       String?  @map("displayname")
+  urlName           String   @map("urlname")
+  acceptingRequests Boolean  @default(true) @map("acceptingrequests")
+  createdAt         DateTime @default(now()) @map("createdat")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updatedat")
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  venue    Venue     @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  states   State[]
+  requests Request[]
+
+  @@unique([userId, venueId])
+  @@unique([userId, urlName])
+  @@index([userId])
+  @@index([venueId])
+  @@index([userId, urlName])
+  @@map("venue_relationships")
+}
+
+// State Management (per venue-relationship + system)
+model State {
+  venueRelationshipId String  @map("venue_relationship_id") @db.Uuid
+  systemId            Int     @default(0) @map("system_id")
+  accepting           Boolean @default(false)
+  serial              Int     @default(1)
+  createdAt           DateTime @default(now()) @map("createdat")
+  updatedAt           DateTime @default(now()) @updatedAt @map("updatedat")
+
+  // Relations
+  venueRelationship VenueRelationship @relation(fields: [venueRelationshipId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@id([venueRelationshipId, systemId])
+  @@map("state")
+}
+
+// Song Database (multi-tenant)
+model SongDb {
+  songId             BigInt   @id @default(autoincrement()) @map("song_id")
+  userId             String   @map("user_id") @db.Uuid
+  systemId           Int      @default(0) @map("system_id")
+  artist             String   @db.VarChar(255)
+  title              String   @db.VarChar(255)
+  combined           String   @db.VarChar(255)
+  normalizedCombined String   @map("normalized_combined") @db.VarChar(255)
+  createdAt          DateTime @default(now()) @map("createdat")
+  updatedAt          DateTime @default(now()) @updatedAt @map("updatedat")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@unique([userId, systemId, combined])
+  @@unique([userId, systemId, normalizedCombined])
+  @@index([userId, systemId, artist])
+  @@index([userId, systemId, title])
+  @@index([userId, systemId, normalizedCombined])
+  @@map("songdb")
+}
+
+// Patron Requests
+model Request {
+  requestId           BigInt   @id @default(autoincrement()) @map("request_id")
+  venueRelationshipId String   @map("venue_relationship_id") @db.Uuid
+  systemId            Int      @default(0) @map("system_id")
+  artist              String
+  title               String
+  singer              String?
+  requestTime         DateTime @default(now()) @map("request_time")
+  keyChange           Int      @default(0) @map("key_change")
+  createdAt           DateTime @default(now()) @map("createdat")
+  updatedAt           DateTime @default(now()) @updatedAt @map("updatedat")
+
+  // Relations
+  venueRelationship VenueRelationship @relation(fields: [venueRelationshipId], references: [id], onDelete: Cascade)
+
+  @@index([venueRelationshipId, systemId, requestTime])
+  @@map("requests")
+}
+
+// Stripe Webhook Events (audit)
+model StripeWebhookEvent {
+  id           Int       @id @default(autoincrement())
+  eventId      String    @unique @map("event_id")
+  payload      Json
+  receivedAt   DateTime  @default(now()) @map("received_at")
+  processed    Boolean   @default(false)
+  processedAt  DateTime? @map("processed_at")
+  errorMessage String?   @map("error_message")
+
+  @@index([receivedAt])
+  @@map("stripe_webhook_events")
+}
+
+// Stripe Checkout Sessions
+model StripeCheckoutSession {
+  id            String    @id
+  customerId    String    @map("customerid") @db.Uuid
+  paymentStatus String    @map("payment_status")
+  mode          String
+  amountTotal   BigInt?   @map("amount_total")
+  currency      String    @db.Char(3)
+  expiresAt     DateTime? @map("expires_at")
+  url           String?
+  metadata      Json?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  customer             Customer              @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  stripePaymentIntents StripePaymentIntent[]
+
+  @@map("stripe_checkout_sessions")
+}
+
+// Stripe Payment Intents
+model StripePaymentIntent {
+  id            String  @id
+  sessionId     String? @map("session_id")
+  customerId    String  @map("customerid") @db.Uuid
+  amount        BigInt?
+  currency      String  @db.Char(3)
+  status        String?
+  captureMethod String? @map("capture_method")
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  customer Customer               @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  session  StripeCheckoutSession? @relation(fields: [sessionId], references: [id])
+
+  @@map("stripe_payment_intents")
+}
