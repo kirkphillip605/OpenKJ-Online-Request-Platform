@@ -1,15 +1,15 @@
+// Filepath: migrations/YYYY...-create-request.js
 'use strict';
-/** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('requests', {
-      request_id: {
+      request_id: { // Already snake_case
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      venue_id: {
+      venue_id: { // Already snake_case
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
@@ -21,25 +21,26 @@ module.exports = {
       },
       artist: {
         type: Sequelize.STRING,
-        allowNull: false // ADD this
+        allowNull: false
       },
       title: {
         type: Sequelize.STRING,
-        allowNull: false // ADD this
+        allowNull: false
       },
       singer: {
         type: Sequelize.STRING,
-        allowNull: false // ADD this
+        allowNull: false
       },
-      request_time: {
+      request_time: { // Already snake_case
         type: Sequelize.DATE,
-        // Use Sequelize function for default CURRENT_TIMESTAMP for cross-db compatibility
-        defaultValue: Sequelize.fn('NOW') // ADD or MODIFY this (or Sequelize.NOW)
+        defaultValue: Sequelize.fn('NOW')
       },
-      key_change: {
+      key_change: { // Already snake_case
         type: Sequelize.INTEGER,
-        defaultValue: 0 // ADD or MODIFY this
+        defaultValue: 0,
+        allowNull: false // Made non-nullable based on model
       }
+      // No timestamps needed based on model
     });
     await queryInterface.addIndex('requests', ['venue_id']);
   },

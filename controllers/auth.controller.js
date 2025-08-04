@@ -51,7 +51,7 @@ const authController = {
             const token = jwt.sign(
                 payload,
                 process.env.JWT_SECRET,
-                { expiresIn: process.env.JWT_EXPIRES_IN || '1h' } // Use expiry from env or default
+                { expiresIn: process.env.JWT_EXPIRES_IN || '90d' } // Use expiry from env or default
             );
 
             logger.info(`Admin user logged in successfully: ${username} (ID: ${user.user_id})`);

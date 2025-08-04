@@ -41,14 +41,18 @@
     "bcrypt": "^5.1.1",
     "cjs": "^0.0.11",
     "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.9.7",
+    "pg": "^8.15.6",
     "sequelize": "^6.37.3",
-    "winston": "^3.13.0"
+    "winston": "^3.13.0",
+    "written-number": "^0.11.1"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
     "cross-env": "^7.0.3",
     "nodemon": "^3.1.0",
     "sequelize-cli": "^6.6.2"

@@ -1,9 +1,9 @@
+// Filepath: migrations/YYYY...-create-user.js
 'use strict';
-/** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('users', {
-      user_id: {
+      user_id: { // Already snake_case
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
@@ -14,7 +14,7 @@ module.exports = {
         allowNull: false,
         unique: true
       },
-      password_hash: {
+      password_hash: { // Already snake_case
         type: Sequelize.STRING,
         allowNull: false
       },
@@ -23,15 +23,17 @@ module.exports = {
         allowNull: false,
         unique: true
       },
-      is_admin: {
+      is_admin: { // Already snake_case
         type: Sequelize.BOOLEAN,
         defaultValue: true
       },
-      createdAt: {
+      // CORRECTED to snake_case
+      created_at: {
         allowNull: false,
         type: Sequelize.DATE
       },
-      updatedAt: {
+      // CORRECTED to snake_case
+      updated_at: {
         allowNull: false,
         type: Sequelize.DATE
       }

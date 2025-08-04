@@ -22,12 +22,18 @@ module.exports = (sequelize) => {
       allowNull: false,
       unique: true,
     },
+    normalized_combined: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
   }, {
     tableName: 'songdb',
     timestamps: false,
     indexes: [
         { fields: ['artist'] },
         { fields: ['title'] },
+        { fields: ['normalized_combined'] },
     ]
   });
 

@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken'); // Import jwt
 const ApiKey = db.ApiKey;
 const User = db.User;
 const Venue = db.Venue;
+const Patron = db.Patron;
 
 // --- Existing verifyOpenKJApiKey function ---
 const verifyOpenKJApiKey = async (req, res, next) => {
@@ -97,4 +98,50 @@ const verifyAdminToken = async (req, res, next) => {
 };
 
 
-module.exports = { verifyOpenKJApiKey, verifyAdminToken }; // Export both
+const verifyPatronToken = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+
+    if (!token) {
+        return res.status(401).json({ error: true, errorString: 'Authentication required: No token provided.' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Check if payload contains patronId (distinguishes from admin tokens if needed)
+        if (!decoded.patronId) {
+             logger.warn(`[Patron Auth] Token verification failed: Missing patronId in payload.`);
+            return res.status(401).json({ error: true, errorString: 'Authentication failed: Invalid token type.' });
+        }
+
+        // Attach decoded payload to request
+        req.auth = decoded; // Use req.auth for consistency
+
+        // Optional: Verify patron exists in DB based on token patronId
+        const patron = await Patron.findByPk(decoded.patronId);
+         if (!patron) {
+             logger.warn(`[Patron Auth] Patron ID ${decoded.patronId} from valid token not found in DB.`);
+             return res.status(401).json({ error: true, errorString: 'Invalid token: Patron not found.' });
+         }
+         req.auth.patron = patron; // Attach patron object if needed in controllers
+
+        logger.debug(`[Patron Auth] Token validated for patron: ${req.auth.email} (ID: ${req.auth.patronId})`);
+        next(); // Proceed if token is valid
+
+    } catch (error) {
+        if (error instanceof jwt.TokenExpiredError) {
+            logger.warn('[Patron Auth] Token expired.');
+            return res.status(401).json({ error: true, errorString: 'Authentication failed: Token expired.' });
+        }
+        if (error instanceof jwt.JsonWebTokenError) {
+            logger.warn('[Patron Auth] Invalid token:', error.message);
+            return res.status(401).json({ error: true, errorString: `Authentication failed: ${error.message}` });
+        }
+        logger.error('[Patron Auth] Error during token verification:', error);
+        return res.status(500).json({ error: true, errorString: 'Server error during authentication.' });
+    }
+};
+
+
+module.exports = { verifyOpenKJApiKey, verifyAdminToken, verifyPatronToken };

@@ -4,10 +4,8 @@ const crypto = require('crypto');
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    // Find the ID of the admin user created in the previous seed
-    // Using Sequelize instance from queryInterface for flexibility
     const [users, metadata] = await queryInterface.sequelize.query(
-      `SELECT user_id from users WHERE username = 'admin' LIMIT 1;` // Ensure table/column names match
+      `SELECT user_id from users WHERE username = 'admin' LIMIT 1;` // Query uses snake_case (correct)
     );
 
     if (!users || users.length === 0) {
@@ -16,26 +14,24 @@ module.exports = {
     const adminUserId = users[0].user_id;
     const generatedKey = crypto.randomBytes(32).toString('hex');
 
-    // Log the generated key to the console so you know what it is!
     console.log('\n\n=================================================');
     console.log('Generated API Key for OpenKJ Testing:');
     console.log(generatedKey);
     console.log('Associated with Admin User ID:', adminUserId);
     console.log('=================================================\n\n');
 
-
-    await queryInterface.bulkInsert('api_keys', [{ // Table name: 'api_keys'
+    await queryInterface.bulkInsert('api_keys', [{
       key: generatedKey,
-      user_id: adminUserId,
+      user_id: adminUserId, // snake_case correct
       description: 'Test Key for OpenKJ Software',
-      createdAt: new Date(),
-      updatedAt: new Date()
-      // last_used_at can be null initially
+      // Use snake_case for explicit column mapping in bulkInsert if needed,
+      // though Sequelize might map camelCase model attributes automatically here.
+      // Being explicit with snake_case matching the DB is safest.
+      created_at: new Date(), // CORRECTED
+      updated_at: new Date()  // CORRECTED
     }], {});
   },
   down: async (queryInterface, Sequelize) => {
-    // Delete the specific key or all keys
     await queryInterface.bulkDelete('api_keys', { description: 'Test Key for OpenKJ Software' }, {});
-    // Or: await queryInterface.bulkDelete('api_keys', null, {}); // Deletes all keys
   }
 };

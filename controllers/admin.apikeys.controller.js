@@ -37,7 +37,7 @@ const apiKeyController = {
             const apiKeys = await ApiKey.findAll({
                 where: whereClause,
                 // Exclude the actual key from the list for security? Or show partial?
-                attributes: { exclude: ['key'] }, // Exclude full key from general list
+                // attributes: { exclude: ['key'] }, // Exclude full key from general list
                 include: [{ model: db.User, as: 'user', attributes: ['user_id', 'username'] }] // Show who generated it
             });
             logger.debug(`[Admin API Keys] Admin ${requestingAdminId} listed API keys.`);

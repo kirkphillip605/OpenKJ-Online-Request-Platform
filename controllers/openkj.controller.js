@@ -145,31 +145,36 @@ const openKJController = {
         }
 
         try {
-            // Fetch requests for the specific venue
-            const requests = await Request.findAll({
-                where: { venue_id },
-                attributes: [
-                    'request_id',
-                    'artist',
-                    'title',
-                    'singer',
-                    ['request_time', 'time'],
-                    ['key_change', 'key']
-                ],
-                order: [['request_time', 'ASC']],
-                raw: true
-            });
+        // Fetch requests for the specific venue
+        const requests = await Request.findAll({
+            where: { venue_id },
+            attributes: [
+                'request_id',
+                'artist',
+                'title',
+                'singer',
+                'request_time',
+                'key_change'
+            ],
+            order: [['request_time', 'ASC']],
+            raw: true
+        });
 
             // Fetch the current global serial
-            const state = await State.findOne();
-            const serial = state ? state.serial : 0;
+        const state = await State.findOne();
+        const serial = state ? state.serial : 0;
 
-            // Convert time to Unix timestamp (seconds) as expected by OpenKJ
-            const formattedRequests = requests.map(request => ({
+            // Convert request_time to Unix timestamp
+        const formattedRequests = requests.map(request => {
+            const unixTime = request.request_time instanceof Date
+                ? Math.floor(request.request_time.getTime() / 1000)
+                : null;
+
+            return {
                 ...request,
-                // Ensure 'time' exists and is a Date object before calling getTime()
-                time: request.time instanceof Date ? Math.floor(request.time.getTime() / 1000) : null
-            })).filter(req => req.time !== null); // Filter out any malformed requests if necessary
+                request_time: unixTime
+            };
+        }).filter(req => req.request_time !== null);
 
             logger.info(`[${command}] Admin ${adminUserId}: Retrieved ${formattedRequests.length} requests for venue ${venue_id}. Serial: ${serial}`);
             return res.status(200).json({

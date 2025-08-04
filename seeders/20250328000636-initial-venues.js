@@ -13,8 +13,8 @@ module.exports = {
         zip: '90210',
         lat: 34.0901, // Example coordinates
         lon: -118.4065, // Example coordinates
-        createdAt: new Date(),
-        updatedAt: new Date()
+        created_at: new Date(),
+        updated_at: new Date()
       },
       {
         name: 'Karaoke Korner',
@@ -23,8 +23,8 @@ module.exports = {
         city: 'Somewhere Else',
         state: 'NY',
         zip: '10001',
-        createdAt: new Date(),
-        updatedAt: new Date()
+        created_at: new Date(),
+        updated_at: new Date()
       }
     ], {});
   },

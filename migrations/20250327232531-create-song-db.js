@@ -1,9 +1,9 @@
+// Filepath: migrations/YYYY...-create-songdb.js
 'use strict';
-/** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('songdb', {
-      song_id: {
+      song_id: { // Already snake_case
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
@@ -19,8 +19,10 @@ module.exports = {
       },
       combined: {
         type: Sequelize.STRING,
-        allowNull: false
+        allowNull: false,
+        unique: true // Keep unique constraint
       }
+      // No timestamps needed for songdb based on model
     });
     await queryInterface.addIndex('songdb', ['artist']);
     await queryInterface.addIndex('songdb', ['title']);

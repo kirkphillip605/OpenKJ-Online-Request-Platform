@@ -1,9 +1,9 @@
+// Filepath: migrations/YYYY...-create-venue.js
 'use strict';
-/** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('venues', {
-      venue_id: {
+      venue_id: { // Already snake_case
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
@@ -13,10 +13,10 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false
       },
-      url_name: {
+      url_name: { // Already snake_case
         type: Sequelize.STRING,
         unique: true,
-        allowNull: false
+        allowNull: true // Changed based on previous correction
       },
       accepting: {
         type: Sequelize.BOOLEAN,
@@ -43,11 +43,13 @@ module.exports = {
       lon: {
         type: Sequelize.DECIMAL(10, 7)
       },
-      createdAt: {
+      // CORRECTED to snake_case
+      created_at: {
         allowNull: false,
         type: Sequelize.DATE
       },
-      updatedAt: {
+      // CORRECTED to snake_case
+      updated_at: {
         allowNull: false,
         type: Sequelize.DATE
       }
