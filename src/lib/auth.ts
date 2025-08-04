@@ -94,7 +94,7 @@ export const authOptions: NextAuthOptions = {
       // Create Stripe customer when user is created
       try {
         const stripe = await import('stripe').then(m => new m.default(process.env.STRIPE_SECRET_KEY!, {
-          apiVersion: '2023-10-16',
+          apiVersion: '2024-06-20',
         }))
 
         const customer = await stripe.customers.create({
