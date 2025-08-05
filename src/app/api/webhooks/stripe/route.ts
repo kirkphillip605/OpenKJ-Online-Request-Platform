@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
 
   try {
     switch (event.type) {
+      // Customer events
       case 'customer.created':
       case 'customer.updated': {
         const customer = event.data.object as Stripe.Customer
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
         break
       }
 
+      // Product events
       case 'product.created':
       case 'product.updated': {
         const product = event.data.object as Stripe.Product
@@ -86,6 +88,16 @@ export async function POST(request: NextRequest) {
         break
       }
 
+      case 'product.deleted': {
+        const product = event.data.object as Stripe.Product
+        await prisma.product.update({
+          where: { id: product.id },
+          data: { active: false }
+        })
+        break
+      }
+
+      // Price events
       case 'price.created':
       case 'price.updated': {
         const price = event.data.object as Stripe.Price
@@ -118,9 +130,96 @@ export async function POST(request: NextRequest) {
         break
       }
 
+      case 'price.deleted': {
+        const price = event.data.object as Stripe.Price
+        await prisma.price.update({
+          where: { id: price.id },
+          data: { active: false }
+        })
+        break
+      }
+
+      // Coupon events
+      case 'coupon.created':
+      case 'coupon.updated': {
+        const coupon = event.data.object as Stripe.Coupon
+        
+        await prisma.coupon.upsert({
+          where: { id: coupon.id },
+          update: {
+            name: coupon.name,
+            amountOff: coupon.amount_off ? BigInt(coupon.amount_off) : null,
+            currency: coupon.currency,
+            duration: coupon.duration,
+            durationInMonths: coupon.duration_in_months,
+            maxRedemptions: coupon.max_redemptions,
+            percentOff: coupon.percent_off,
+            redeemBy: coupon.redeem_by ? new Date(coupon.redeem_by * 1000) : null,
+            timesRedeemed: coupon.times_redeemed,
+            valid: coupon.valid,
+            metadata: coupon.metadata as any,
+          },
+          create: {
+            id: coupon.id,
+            name: coupon.name,
+            amountOff: coupon.amount_off ? BigInt(coupon.amount_off) : null,
+            currency: coupon.currency,
+            duration: coupon.duration,
+            durationInMonths: coupon.duration_in_months,
+            maxRedemptions: coupon.max_redemptions,
+            percentOff: coupon.percent_off,
+            redeemBy: coupon.redeem_by ? new Date(coupon.redeem_by * 1000) : null,
+            timesRedeemed: coupon.times_redeemed,
+            valid: coupon.valid,
+            metadata: coupon.metadata as any,
+          },
+        })
+        break
+      }
+
+      case 'coupon.deleted': {
+        const coupon = event.data.object as Stripe.Coupon
+        await prisma.coupon.update({
+          where: { id: coupon.id },
+          data: { valid: false }
+        })
+        break
+      }
+
+      // Promotion Code events
+      case 'promotion_code.created':
+      case 'promotion_code.updated': {
+        const promotionCode = event.data.object as Stripe.PromotionCode
+        
+        await prisma.promotionCode.upsert({
+          where: { id: promotionCode.id },
+          update: {
+            code: promotionCode.code,
+            active: promotionCode.active,
+            maxRedemptions: promotionCode.max_redemptions,
+            timesRedeemed: promotionCode.times_redeemed,
+            expiresAt: promotionCode.expires_at ? new Date(promotionCode.expires_at * 1000) : null,
+            metadata: promotionCode.metadata as any,
+          },
+          create: {
+            id: promotionCode.id,
+            couponId: promotionCode.coupon.id,
+            code: promotionCode.code,
+            active: promotionCode.active,
+            maxRedemptions: promotionCode.max_redemptions,
+            timesRedeemed: promotionCode.times_redeemed,
+            expiresAt: promotionCode.expires_at ? new Date(promotionCode.expires_at * 1000) : null,
+            metadata: promotionCode.metadata as any,
+          },
+        })
+        break
+      }
+
+      // Subscription events
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
-      case 'customer.subscription.deleted': {
+      case 'customer.subscription.paused':
+      case 'customer.subscription.resumed': {
         const subscription = event.data.object as Stripe.Subscription
         const customer = await prisma.customer.findUnique({
           where: { stripeCustomerId: subscription.customer as string },
@@ -131,49 +230,53 @@ export async function POST(request: NextRequest) {
           break
         }
 
-        if (event.type === 'customer.subscription.deleted') {
-          await prisma.subscription.delete({
-            where: { id: subscription.id },
-          })
-        } else {
-          await prisma.subscription.upsert({
-            where: { id: subscription.id },
-            update: {
-              status: subscription.status as any,
-              priceId: subscription.items.data[0]?.price.id,
-              quantity: subscription.items.data[0]?.quantity || 1,
-              cancelAtPeriodEnd: subscription.cancel_at_period_end,
-              currentPeriodStart: new Date(subscription.current_period_start * 1000),
-              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-              endedAt: subscription.ended_at ? new Date(subscription.ended_at * 1000) : null,
-              cancelAt: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
-              canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
-              trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
-              trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
-              metadata: subscription.metadata as any,
-            },
-            create: {
-              id: subscription.id,
-              userId: customer.id,
-              status: subscription.status as any,
-              priceId: subscription.items.data[0]?.price.id,
-              quantity: subscription.items.data[0]?.quantity || 1,
-              cancelAtPeriodEnd: subscription.cancel_at_period_end,
-              createdAt: new Date(subscription.created * 1000),
-              currentPeriodStart: new Date(subscription.current_period_start * 1000),
-              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-              endedAt: subscription.ended_at ? new Date(subscription.ended_at * 1000) : null,
-              cancelAt: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
-              canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
-              trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
-              trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
-              metadata: subscription.metadata as any,
-            },
-          })
-        }
+        await prisma.subscription.upsert({
+          where: { id: subscription.id },
+          update: {
+            status: subscription.status as any,
+            priceId: subscription.items.data[0]?.price.id,
+            quantity: subscription.items.data[0]?.quantity || 1,
+            cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            currentPeriodStart: new Date(subscription.current_period_start * 1000),
+            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+            endedAt: subscription.ended_at ? new Date(subscription.ended_at * 1000) : null,
+            cancelAt: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
+            canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
+            trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
+            trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+            metadata: subscription.metadata as any,
+          },
+          create: {
+            id: subscription.id,
+            userId: customer.id,
+            status: subscription.status as any,
+            priceId: subscription.items.data[0]?.price.id,
+            quantity: subscription.items.data[0]?.quantity || 1,
+            cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            createdAt: new Date(subscription.created * 1000),
+            currentPeriodStart: new Date(subscription.current_period_start * 1000),
+            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+            endedAt: subscription.ended_at ? new Date(subscription.ended_at * 1000) : null,
+            cancelAt: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
+            canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
+            trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
+            trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+            metadata: subscription.metadata as any,
+          },
+        })
         break
       }
 
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription
+        await prisma.subscription.delete({
+          where: { id: subscription.id },
+        })
+        break
+      }
+
+      // Invoice events
+      case 'invoice.created':
       case 'invoice.payment_succeeded':
       case 'invoice.payment_failed':
       case 'invoice.finalized': {
@@ -219,6 +322,101 @@ export async function POST(request: NextRequest) {
         break
       }
 
+      // Payment Intent events
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent
+        const customer = await prisma.customer.findUnique({
+          where: { stripeCustomerId: paymentIntent.customer as string },
+        })
+
+        if (!customer) {
+          logger.error('Customer not found for payment intent:', paymentIntent.id)
+          break
+        }
+
+        await prisma.stripePaymentIntent.upsert({
+          where: { id: paymentIntent.id },
+          update: {
+            amount: paymentIntent.amount ? BigInt(paymentIntent.amount) : null,
+            currency: paymentIntent.currency,
+            status: paymentIntent.status,
+            captureMethod: paymentIntent.capture_method,
+            metadata: paymentIntent.metadata as any,
+          },
+          create: {
+            id: paymentIntent.id,
+            customerId: customer.id,
+            amount: paymentIntent.amount ? BigInt(paymentIntent.amount) : null,
+            currency: paymentIntent.currency,
+            status: paymentIntent.status,
+            captureMethod: paymentIntent.capture_method,
+            metadata: paymentIntent.metadata as any,
+          },
+        })
+        break
+      }
+
+      case 'payment_intent.payment_failed': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent
+        const customer = await prisma.customer.findUnique({
+          where: { stripeCustomerId: paymentIntent.customer as string },
+        })
+
+        if (!customer) {
+          logger.error('Customer not found for payment intent:', paymentIntent.id)
+          break
+        }
+
+        await prisma.stripePaymentIntent.upsert({
+          where: { id: paymentIntent.id },
+          update: {
+            status: paymentIntent.status,
+            metadata: paymentIntent.metadata as any,
+          },
+          create: {
+            id: paymentIntent.id,
+            customerId: customer.id,
+            amount: paymentIntent.amount ? BigInt(paymentIntent.amount) : null,
+            currency: paymentIntent.currency,
+            status: paymentIntent.status,
+            captureMethod: paymentIntent.capture_method,
+            metadata: paymentIntent.metadata as any,
+          },
+        })
+        break
+      }
+
+      // Payment Method events
+      case 'payment_method.attached': {
+        const paymentMethod = event.data.object as Stripe.PaymentMethod
+        
+        await prisma.paymentMethod.upsert({
+          where: { id: paymentMethod.id },
+          update: {
+            type: paymentMethod.type,
+            cardBrand: paymentMethod.card?.brand,
+            cardLast4: paymentMethod.card?.last4,
+            cardExpMonth: paymentMethod.card?.exp_month,
+            cardExpYear: paymentMethod.card?.exp_year,
+            billingDetails: paymentMethod.billing_details as any,
+            metadata: paymentMethod.metadata as any,
+          },
+          create: {
+            id: paymentMethod.id,
+            stripeCustomerId: paymentMethod.customer as string,
+            type: paymentMethod.type,
+            cardBrand: paymentMethod.card?.brand,
+            cardLast4: paymentMethod.card?.last4,
+            cardExpMonth: paymentMethod.card?.exp_month,
+            cardExpYear: paymentMethod.card?.exp_year,
+            billingDetails: paymentMethod.billing_details as any,
+            metadata: paymentMethod.metadata as any,
+          },
+        })
+        break
+      }
+
+      // Checkout events
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
         const customer = await prisma.customer.findUnique({
