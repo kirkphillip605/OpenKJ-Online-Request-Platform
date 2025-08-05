@@ -52,9 +52,16 @@ export default function SignInPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <img
+              src="/Color%20(For%20Light%20BG).svg"
+              alt="Singr Karaoke"
+              className="h-12 w-12"
+            />
+          </div>
           <CardTitle className="text-2xl">Sign In</CardTitle>
           <CardDescription>
-            Welcome back to OpenKJ Platform
+            Welcome back to Singr Karaoke Connect
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

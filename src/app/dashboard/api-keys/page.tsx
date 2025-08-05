@@ -40,7 +40,7 @@ export default async function ApiKeysPage() {
         <div>
           <h1 className="text-3xl font-bold">API Keys</h1>
           <p className="text-muted-foreground">
-            Manage API keys for OpenKJ desktop integration
+            Manage API keys for OpenKJ and Singr integration
           </p>
         </div>
         <Link href="/dashboard/api-keys/new">
@@ -64,7 +64,7 @@ export default async function ApiKeysPage() {
             <Key className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No API keys yet</h3>
             <p className="text-muted-foreground text-center mb-4">
-              Create an API key to connect OpenKJ desktop software to your account
+              Create an API key to connect OpenKJ desktop software or Singr tools to your account
             </p>
             <Link href="/dashboard/api-keys/new">
               <Button>
@@ -135,9 +135,9 @@ export default async function ApiKeysPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>OpenKJ Integration Setup</CardTitle>
+          <CardTitle>Integration Setup</CardTitle>
           <CardDescription>
-            How to configure OpenKJ desktop software with your API key
+            How to configure OpenKJ desktop software or Singr tools with your API key
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

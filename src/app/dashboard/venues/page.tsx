@@ -40,7 +40,7 @@ export default async function VenuesPage() {
         <div>
           <h1 className="text-3xl font-bold">Venues</h1>
           <p className="text-muted-foreground">
-            Manage your karaoke venues and their settings
+            Manage your Singr karaoke venues and their settings
           </p>
         </div>
         <Link href="/dashboard/venues/new">

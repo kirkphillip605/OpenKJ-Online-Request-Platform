@@ -14,7 +14,7 @@ async function main() {
       email: 'test@example.com',
       name: 'Test User',
       passwordHash: await bcrypt.hash('password123', 12),
-      businessName: 'Test Karaoke Business',
+      businessName: 'Test Singr Venue',
       phoneNumber: '+1-555-0123',
     },
   })
@@ -82,7 +82,7 @@ async function main() {
   await prisma.apiKey.create({
     data: {
       customerId: customer.id,
-      description: 'Test API Key for OpenKJ',
+      description: 'Test API Key for Singr Connect',
       apiKeyHash,
       status: 'active',
     },

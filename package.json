@@ -1,7 +1,7 @@
 {
-  "name": "openkj-multi-tenant-platform",
+  "name": "singr-karaoke-connect",
   "version": "1.0.0",
-  "description": "Multi-tenant karaoke request platform with billing and management portal",
+  "description": "Professional karaoke management platform with real-time requests and multi-venue support",
   "main": "index.js",
   "scripts": {
     "dev": "next dev",
@@ -12,6 +12,8 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "stripe:sync": "node scripts/sync-stripe-data.js",
+    "stripe:setup": "node scripts/setup-stripe.js",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -62,6 +64,7 @@
   },
   "keywords": [
     "karaoke",
+    "singr",
     "openkj",
     "multi-tenant",
     "stripe",

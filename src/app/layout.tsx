@@ -6,8 +6,8 @@ import { Providers } from './providers'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'OpenKJ Multi-Tenant Platform',
-  description: 'Multi-tenant karaoke request platform with billing and management portal',
+  title: 'Singr Karaoke Connect',
+  description: 'Professional karaoke management platform for Singr with real-time requests, multi-venue support, and OpenKJ integration',
 }
 
 export default function RootLayout({

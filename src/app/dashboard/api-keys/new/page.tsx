@@ -18,7 +18,7 @@ export default async function NewApiKeyPage() {
       <div>
         <h1 className="text-3xl font-bold">Create API Key</h1>
         <p className="text-muted-foreground">
-          Generate a new API key for OpenKJ desktop integration
+          Generate a new API key for OpenKJ desktop or Singr integration
         </p>
       </div>
 
@@ -37,7 +37,7 @@ export default async function NewApiKeyPage() {
             New API Key
           </CardTitle>
           <CardDescription>
-            This key will allow OpenKJ desktop software to access your venue data and manage requests.
+            This key will allow OpenKJ desktop software or Singr tools to access your venue data and manage requests.
           </CardDescription>
         </CardHeader>
         <CardContent>

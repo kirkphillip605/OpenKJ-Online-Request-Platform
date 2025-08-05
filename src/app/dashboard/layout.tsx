@@ -22,8 +22,13 @@ export default async function DashboardLayout({
       <header className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/dashboard" className="text-xl font-bold">
-              OpenKJ Platform
+            <Link href="/dashboard" className="flex items-center space-x-2">
+              <img
+                src="/Color%20(For%20Light%20BG).svg"
+                alt="Singr Karaoke"
+                className="h-8 w-8"
+              />
+              <span className="text-xl font-bold">Singr Karaoke Connect</span>
             </Link>
             
             <DashboardHeader userEmail={session.user?.email} />
