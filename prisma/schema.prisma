@@ -225,47 +225,6 @@ model PromotionCode {
   @@map("promotion_codes")
 }
 
-model Coupon {
-  id               String    @id
-  name             String?
-  amountOff        BigInt?   @map("amountoff")
-  currency         String?   @db.Char(3)
-  duration         String?
-  durationInMonths Int?      @map("durationinmonths")
-  maxRedemptions   Int?      @map("maxredemptions")
-  percentOff       Float?    @map("percentoff")
-  redeemBy         DateTime? @map("redeemby")
-  timesRedeemed    Int       @default(0) @map("timesredeemed")
-  valid            Boolean   @default(true)
-  metadata         Json?
-  createdAt        DateTime  @default(now()) @map("createdat")
-  updatedAt        DateTime  @default(now()) @updatedAt @map("updatedat")
-
-  // Relations
-  promotionCodes PromotionCode[]
-
-  @@map("coupons")
-}
-
-model PromotionCode {
-  id           String    @id
-  couponId     String    @map("couponid")
-  code         String    @unique
-  active       Boolean
-  maxRedemptions Int?    @map("maxredemptions")
-  timesRedeemed Int      @default(0) @map("timesredeemed")
-  expiresAt    DateTime? @map("expiresat")
-  metadata     Json?
-  createdAt    DateTime  @default(now()) @map("createdat")
-  updatedAt    DateTime  @default(now()) @updatedAt @map("updatedat")
-
-  // Relations
-  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
-
-  @@index([couponId])
-  @@map("promotion_codes")
-}
-
 model Subscription {
   id                 String             @id
   userId             String             @map("userid") @db.Uuid
