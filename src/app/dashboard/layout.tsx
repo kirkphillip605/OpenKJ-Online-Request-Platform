@@ -2,9 +2,8 @@ import { getServerSession } from 'next-auth/next'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { signOut } from 'next-auth/react'
 import { DashboardNav } from '@/components/dashboard-nav'
+import { DashboardHeader } from '@/components/dashboard-header'
 
 export default async function DashboardLayout({
   children,
@@ -27,17 +26,7 @@ export default async function DashboardLayout({
               OpenKJ Platform
             </Link>
             
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">
-                {session.user?.email}
-              </span>
-              <Button
-                variant="outline"
-                onClick={() => signOut({ callbackUrl: '/' })}
-              >
-                Sign Out
-              </Button>
-            </div>
+            <DashboardHeader userEmail={session.user?.email} />
           </div>
         </div>
       </header>
